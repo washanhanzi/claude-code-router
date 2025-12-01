@@ -40,7 +40,7 @@ npm install -g @anthropic-ai/claude-code
 Then, install Claude Code Router:
 
 ```shell
-npm install -g @musistudio/claude-code-router
+npm install -g @washanhanzi/claude-code-router
 ```
 
 ### 2. Configuration
@@ -327,7 +327,31 @@ The `Providers` array is where you define the different model providers you want
 - `api_base_url`: The full API endpoint for chat completions.
 - `api_key`: Your API key for the provider.
 - `models`: A list of model names available from this provider.
+- `headers` (optional): Custom HTTP headers to include in all requests to this provider.
 - `transformer` (optional): Specifies transformers to process requests and responses.
+
+#### Custom Headers
+
+You can add custom HTTP headers to requests for specific providers using the `headers` field. This is useful for:
+- Adding authentication headers required by certain providers
+- Setting custom tracking or identification headers
+- Passing provider-specific parameters via headers
+
+```json
+{
+  "name": "custom-provider",
+  "api_base_url": "https://api.example.com/v1/chat/completions",
+  "api_key": "sk-xxx",
+  "models": ["model-1", "model-2"],
+  "headers": {
+    "X-Custom-Header": "custom-value",
+    "HTTP-Referer": "https://myapp.com",
+    "X-Request-Source": "claude-code-router"
+  }
+}
+```
+
+All headers defined in the `headers` object will be included in every request sent to that provider, alongside the standard `Authorization` header.
 
 #### Transformers
 
@@ -554,7 +578,7 @@ jobs:
 
       - name: Start Claude Code Router
         run: |
-          nohup ~/.bun/bin/bunx @musistudio/claude-code-router@1.0.8 start &
+          nohup ~/.bun/bin/bunx @washanhanzi/claude-code-router start &
         shell: bash
 
       - name: Run Claude Code

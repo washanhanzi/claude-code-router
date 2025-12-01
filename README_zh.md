@@ -39,7 +39,7 @@ npm install -g @anthropic-ai/claude-code
 然后，安装 Claude Code Router：
 
 ```shell
-npm install -g @musistudio/claude-code-router
+npm install -g @washanhanzi/claude-code-router
 ```
 
 ### 2. 配置
@@ -302,7 +302,31 @@ eval "$(ccr activate)"
 -   `api_base_url`: 聊天补全的完整 API 端点。
 -   `api_key`: 您提供商的 API 密钥。
 -   `models`: 此提供商可用的模型名称列表。
+-   `headers` (可选): 发送到该提供商的所有请求中包含的自定义 HTTP 头。
 -   `transformer` (可选): 指定用于处理请求和响应的转换器。
+
+#### 自定义请求头
+
+您可以使用 `headers` 字段为特定提供商的请求添加自定义 HTTP 头。这对以下场景非常有用：
+- 添加某些提供商所需的认证头
+- 设置自定义跟踪或标识头
+- 通过头传递提供商特定的参数
+
+```json
+{
+  "name": "custom-provider",
+  "api_base_url": "https://api.example.com/v1/chat/completions",
+  "api_key": "sk-xxx",
+  "models": ["model-1", "model-2"],
+  "headers": {
+    "X-Custom-Header": "custom-value",
+    "HTTP-Referer": "https://myapp.com",
+    "X-Request-Source": "claude-code-router"
+  }
+}
+```
+
+在 `headers` 对象中定义的所有头都将包含在发送到该提供商的每个请求中，与标准的 `Authorization` 头一起发送。
 
 #### Transformers
 
@@ -527,7 +551,7 @@ jobs:
 
       - name: Start Claude Code Router
         run: |
-          nohup ~/.bun/bin/bunx @musistudio/claude-code-router@1.0.8 start &
+          nohup ~/.bun/bin/bunx @washanhanzi/claude-code-router start &
         shell: bash
 
       - name: Run Claude Code

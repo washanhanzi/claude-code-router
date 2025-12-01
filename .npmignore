@@ -1,5 +1,7 @@
 src
 node_modules
+packages
+.gitmodules
 .claude
 CLAUDE.md
 screenshoots
