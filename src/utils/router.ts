@@ -3,7 +3,7 @@ import {
   MessageParam,
   Tool,
 } from "@anthropic-ai/sdk/resources/messages";
-import { get_encoding } from "tiktoken";
+import { getEncoding } from "js-tiktoken";
 import { sessionUsageCache, Usage } from "./cache";
 import { readFile, access } from "fs/promises";
 import { opendir, stat } from "fs/promises";
@@ -11,7 +11,7 @@ import { join } from "path";
 import { CLAUDE_PROJECTS_DIR, HOME_DIR } from "../constants";
 import { LRUCache } from "lru-cache";
 
-const enc = get_encoding("cl100k_base");
+const enc = getEncoding("cl100k_base");
 
 export const calculateTokenCount = (
   messages: MessageParam[],

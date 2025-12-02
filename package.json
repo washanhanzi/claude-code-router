@@ -1,6 +1,6 @@
 {
   "name": "@washanhanzi/claude-code-router",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Use Claude Code without an Anthropics account and route it to another LLM provider",
   "bin": {
     "ccr": "dist/cli.js"
@@ -29,7 +29,7 @@
     "openurl": "^1.1.1",
     "rotating-file-stream": "^3.2.7",
     "shell-quote": "^1.8.3",
-    "tiktoken": "^1.0.21",
+    "js-tiktoken": "^1.0.15",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
