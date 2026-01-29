@@ -333,10 +333,11 @@ async function sendRequestToProvider(
   }
 
   // Send HTTP request
-  // Prepare headers
+  // Prepare headers (Authorization as base, config.headers can override, provider.headers has highest priority)
   const requestHeaders: Record<string, string> = {
     Authorization: `Bearer ${provider.apiKey}`,
     ...(config?.headers || {}),
+    ...(provider.headers || {}),
   };
 
   for (const key in requestHeaders) {

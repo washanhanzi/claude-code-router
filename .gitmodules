@@ -1,3 +1,0 @@
-[submodule "packages/llms"]
-	path = packages/llms
-	url = https://github.com/washanhanzi/llms.git

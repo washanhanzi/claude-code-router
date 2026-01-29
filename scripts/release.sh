@@ -38,35 +38,13 @@ case "$PUBLISH_TYPE" in
 esac
 
 # ===========================
-# 发布 Core npm 包 (@musistudio/llms)
+# 发布 Core npm 包 (@CCR/llms) - SKIPPED (local package)
 # ===========================
 publish_core_npm() {
   echo ""
   echo "========================================="
-  echo "发布 npm 包 @musistudio/llms"
+  echo "跳过 @CCR/llms (本地包，不发布到 npm)"
   echo "========================================="
-
-  # 检查是否已登录 npm
-  if ! npm whoami &>/dev/null; then
-    echo "错误: 未登录 npm，请先运行: npm login"
-    exit 1
-  fi
-
-  CORE_DIR="../packages/core"
-  CORE_VERSION=$(node -p "require('../packages/core/package.json').version")
-
-  # 复制 README 到 core 包
-  cp ../README.md "$CORE_DIR/" 2>/dev/null || echo "README.md 不存在，跳过..."
-  cp ../LICENSE "$CORE_DIR/" 2>/dev/null || echo "LICENSE 文件不存在，跳过..."
-
-  # 发布到 npm
-  cd "$CORE_DIR"
-  echo "执行 npm publish..."
-  npm publish --access public
-
-  echo ""
-  echo "✅ Core npm 包发布成功!"
-  echo "   包名: @musistudio/llms@${CORE_VERSION}"
 }
 
 # ===========================
@@ -97,10 +75,10 @@ publish_npm() {
     delete pkg.scripts;
     pkg.files = ['dist/*', 'README.md', 'LICENSE'];
     pkg.dependencies = {};
-    // 移除 workspace 依赖
+    // 移除 workspace 依赖 (all bundled)
     delete pkg.dependencies['@CCR/shared'];
     delete pkg.dependencies['@CCR/server'];
-    pkg.dependencies['@musistudio/llms'] = require('../packages/server/package.json').dependencies['@musistudio/llms'];
+    delete pkg.dependencies['@CCR/llms'];
     pkg.peerDependencies = {
       'node': '>=18.0.0'
     };

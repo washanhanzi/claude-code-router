@@ -1,10 +1,10 @@
 {
-  "name": "@musistudio/claude-code-router",
-  "version": "2.0.0",
+  "name": "@washanhanzi/claude-code-router",
+  "version": "2.0.3",
   "description": "Use Claude Code without an Anthropics account and route it to another LLM provider",
   "scripts": {
     "build": "pnpm build:shared && pnpm build:core && pnpm build:server && pnpm build:cli && pnpm build:ui",
-    "build:core": "pnpm --filter @musistudio/llms build",
+    "build:core": "pnpm --filter @CCR/llms build",
     "build:shared": "pnpm --filter @CCR/shared build",
     "build:cli": "pnpm --filter @CCR/cli build",
     "build:server": "pnpm --filter @CCR/server build",
@@ -16,7 +16,7 @@
     "dev:cli": "pnpm --filter @CCR/cli dev",
     "dev:server": "pnpm --filter @CCR/server dev",
     "dev:ui": "pnpm --filter @CCR/ui dev",
-    "dev:core": "pnpm --filter @musistudio/llms dev",
+    "dev:core": "pnpm --filter @CCR/llms dev",
     "dev:docs": "pnpm --filter claude-code-router-docs start",
     "serve:docs": "pnpm --filter claude-code-router-docs serve"
   },
@@ -30,7 +30,7 @@
     "llm",
     "anthropic"
   ],
-  "author": "musistudio",
+  "author": "washanhanzi",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^24.0.15",
@@ -46,5 +46,6 @@
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=8.0.0"
-  }
+  },
+  "packageManager": "pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264"
 }

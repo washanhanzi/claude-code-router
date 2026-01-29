@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 
-declare module '@musistudio/llms' {
+declare module '@CCR/llms' {
 
   export interface CCRPluginOptions {
     enabled?: boolean;
