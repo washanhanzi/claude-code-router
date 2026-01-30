@@ -85,7 +85,7 @@ async function waitForService(
 
   const startTime = Date.now();
   while (Date.now() - startTime < timeout) {
-    const isRunning = isServiceRunning()
+    const isRunning = await isServiceRunning()
     if (isRunning) {
       // Wait for an additional short period to ensure service is fully ready
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -97,7 +97,7 @@ async function waitForService(
 }
 
 async function main() {
-  const isRunning = isServiceRunning()
+  const isRunning = await isServiceRunning()
 
   // If command is not a known command, check if it's a preset
   if (command && !KNOWN_COMMANDS.includes(command)) {
@@ -174,12 +174,23 @@ async function main() {
         const cliPath = join(__dirname, "cli.js");
         const startProcess = spawn("node", [cliPath, "start"], {
           detached: true,
-          stdio: "ignore",
+          stdio: "inherit",
         });
+
+        let childExited = false;
+        let childExitCode: number | null = null;
 
         startProcess.on("error", (error) => {
           console.error("Failed to start service:", error.message);
           process.exit(1);
+        });
+
+        startProcess.on("exit", (code) => {
+          childExited = true;
+          childExitCode = code;
+          if (code !== 0) {
+            console.error(`Service process exited unexpectedly with code ${code}`);
+          }
         });
 
         startProcess.unref();
@@ -187,9 +198,15 @@ async function main() {
         if (await waitForService()) {
           executeCodeCommand(codeArgs, presetConfig, envOverrides, command);
         } else {
-          console.error(
-            "Service startup timeout, please manually run `ccr start` to start the service"
-          );
+          if (childExited) {
+            console.error(
+              `Service failed to start (exit code: ${childExitCode}). Check logs at ~/.claude-code-router/logs/`
+            );
+          } else {
+            console.error(
+              "Service startup timeout, please manually run `ccr start` to start the service"
+            );
+          }
           process.exit(1);
         }
       } else {
@@ -282,12 +299,23 @@ async function main() {
         const cliPath = join(__dirname, "cli.js");
         const startProcess = spawn("node", [cliPath, "start"], {
           detached: true,
-          stdio: "ignore",
+          stdio: "inherit",
         });
+
+        let codeChildExited = false;
+        let codeChildExitCode: number | null = null;
 
         startProcess.on("error", (error) => {
           console.error("Failed to start service:", error.message);
           process.exit(1);
+        });
+
+        startProcess.on("exit", (code) => {
+          codeChildExited = true;
+          codeChildExitCode = code;
+          if (code !== 0) {
+            console.error(`Service process exited unexpectedly with code ${code}`);
+          }
         });
 
         startProcess.unref();
@@ -296,9 +324,15 @@ async function main() {
           const codeArgs = process.argv.slice(3);
           executeCodeCommand(codeArgs);
         } else {
-          console.error(
-            "Service startup timeout, please manually run `ccr start` to start the service"
-          );
+          if (codeChildExited) {
+            console.error(
+              `Service failed to start (exit code: ${codeChildExitCode}). Check logs at ~/.claude-code-router/logs/`
+            );
+          } else {
+            console.error(
+              "Service startup timeout, please manually run `ccr start` to start the service"
+            );
+          }
           process.exit(1);
         }
       } else {
@@ -313,15 +347,33 @@ async function main() {
         const cliPath = join(__dirname, "cli.js");
         const startProcess = spawn("node", [cliPath, "start"], {
           detached: true,
-          stdio: "ignore",
+          stdio: "inherit",
         });
+
+        let uiChildExited = false;
+        let uiChildExitCode: number | null = null;
 
         startProcess.on("error", (error) => {
           console.error("Failed to start service:", error.message);
           process.exit(1);
         });
 
+        startProcess.on("exit", (code) => {
+          uiChildExited = true;
+          uiChildExitCode = code;
+          if (code !== 0) {
+            console.error(`Service process exited unexpectedly with code ${code}`);
+          }
+        });
+
         startProcess.unref();
+
+        if (uiChildExited && uiChildExitCode !== 0) {
+          console.error(
+            `Service failed to start (exit code: ${uiChildExitCode}). Check logs at ~/.claude-code-router/logs/`
+          );
+          process.exit(1);
+        }
 
         if (!(await waitForService())) {
           // If service startup fails, try to start with default config
@@ -362,7 +414,7 @@ async function main() {
             // Try starting the service again
             const restartProcess = spawn("node", [cliPath, "start"], {
               detached: true,
-              stdio: "ignore",
+              stdio: "inherit",
             });
 
             restartProcess.on("error", (error) => {

@@ -149,15 +149,19 @@ async function getServer(options: RunOptions = {}) {
       if (config.LOG === undefined) {
         config.LOG = true;
       }
+      // Use stdout for debugging (LOG_TO_CONSOLE: true), or file stream for production
+      const useConsole = config.LOG_TO_CONSOLE === true;
       loggerConfig = {
         level: config.LOG_LEVEL || "debug",
-        stream: createStream(generator, {
-          path: HOME_DIR,
-          maxFiles: 3,
-          interval: "1d",
-          compress: false,
-          maxSize: "50M"
-        }),
+        stream: useConsole
+          ? process.stdout
+          : createStream(generator, {
+              path: HOME_DIR,
+              maxFiles: 3,
+              interval: "1d",
+              compress: false,
+              maxSize: "50M",
+            }),
       };
     } else {
       loggerConfig = false;
@@ -208,6 +212,30 @@ async function getServer(options: RunOptions = {}) {
     }
   })
 
+  // Log every incoming request
+  serverInstance.addHook("onRequest", async (req: any, reply: any) => {
+    req.startTime = Date.now();
+    serverInstance.app.log.info({
+      type: "request_start",
+      method: req.method,
+      url: req.url,
+      requestId: req.id,
+    });
+  });
+
+  // Log response completion with timing
+  serverInstance.addHook("onResponse", async (req: any, reply: any) => {
+    const duration = Date.now() - (req.startTime || Date.now());
+    serverInstance.app.log.info({
+      type: "request_complete",
+      method: req.method,
+      url: req.url,
+      statusCode: reply.statusCode,
+      requestId: req.id,
+      durationMs: duration,
+    });
+  });
+
   serverInstance.addHook("preHandler", async (req: any, reply: any) => {
     if (req.pathname.endsWith("/v1/messages")) {
       const useAgents = []
@@ -242,6 +270,21 @@ async function getServer(options: RunOptions = {}) {
     }
   });
   serverInstance.addHook("onError", async (request: any, reply: any, error: any) => {
+    const duration = Date.now() - (request.startTime || Date.now());
+    serverInstance.app.log.error({
+      type: "request_error",
+      method: request.method,
+      url: request.url,
+      requestId: request.id,
+      durationMs: duration,
+      error: {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        statusCode: error.statusCode,
+        stack: error.stack,
+      },
+    });
     event.emit('onError', request, reply, error);
   })
   serverInstance.addHook("onSend", (req: any, reply: any, payload: any, done: any) => {
@@ -317,6 +360,8 @@ async function getServer(options: RunOptions = {}) {
                   role: 'user',
                   content: toolMessages
                 })
+                // Use AbortSignal with timeout to prevent indefinite blocking
+                const fetchTimeout = config.API_TIMEOUT_MS || 300000; // 5 minutes default
                 const response = await fetch(`http://127.0.0.1:${config.PORT || 3456}/v1/messages`, {
                   method: "POST",
                   headers: {
@@ -324,6 +369,7 @@ async function getServer(options: RunOptions = {}) {
                     'content-type': 'application/json',
                   },
                   body: JSON.stringify(req.body),
+                  signal: AbortSignal.timeout(fetchTimeout),
                 })
                 if (!response.ok) {
                   return undefined;

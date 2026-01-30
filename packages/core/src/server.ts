@@ -196,6 +196,7 @@ class Server {
   }
 
   async start(): Promise<void> {
+    console.log('[CCR] Server.start() called');
     try {
       this.app._server = this;
 
@@ -211,7 +212,9 @@ class Server {
         done();
       });
 
+      console.log('[CCR] Registering namespace...');
       await this.registerNamespace('/')
+      console.log('[CCR] Namespace registered');
 
       this.app.addHook(
         "preHandler",
@@ -239,11 +242,11 @@ class Server {
       );
 
 
-      const address = await this.app.listen({
-        port: parseInt(this.configService.get("PORT") || "3000", 10),
-        host: this.configService.get("HOST") || "127.0.0.1",
-      });
-
+      const port = parseInt(this.configService.get("PORT") || "3000", 10);
+      const host = this.configService.get("HOST") || "127.0.0.1";
+      console.log(`[CCR] Starting listen on ${host}:${port}...`);
+      const address = await this.app.listen({ port, host });
+      console.log(`[CCR] 🚀 Server listening on ${address}`);
       this.app.log.info(`🚀 LLMs API server listening on ${address}`);
 
       const shutdown = async (signal: string) => {
@@ -255,6 +258,7 @@ class Server {
       process.on("SIGINT", () => shutdown("SIGINT"));
       process.on("SIGTERM", () => shutdown("SIGTERM"));
     } catch (error) {
+      console.error(`[CCR] Error starting server:`, error);
       this.app.log.error(`Error starting server: ${error}`);
       process.exit(1);
     }

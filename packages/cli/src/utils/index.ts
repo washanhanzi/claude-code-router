@@ -184,15 +184,13 @@ export const initConfig = async () => {
 };
 
 export const run = async (args: string[] = []) => {
-  const isRunning = isServiceRunning()
+  const isRunning = await isServiceRunning()
   if (isRunning) {
     console.log('claude-code-router server is running');
     return;
   }
   const server = await getServer();
   const app = server.app;
-  // Save the PID of the background process
-  writeFileSync(PID_FILE, process.pid.toString());
 
   app.post('/api/update/perform', async () => {
     return await performUpdate();
@@ -213,8 +211,12 @@ export const run = async (args: string[] = []) => {
     return { success: true, message: "Service restart initiated" }
   });
 
-  // await server.start() to ensure it starts successfully and keep process alive
+  // Start server first, then write PID only if successful
+  // This prevents stale PID files when server fails to start
   await server.start();
+
+  // Only write PID after server successfully starts listening
+  writeFileSync(PID_FILE, process.pid.toString());
 }
 
 export const restartService = async () => {

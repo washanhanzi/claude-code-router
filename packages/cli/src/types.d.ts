@@ -40,13 +40,6 @@ declare module '@inquirer/prompts' {
   }): Promise<boolean>;
 }
 
-declare module 'find-process' {
-  export default function find(
-    type: 'pid' | 'name' | 'port',
-    value: string | number
-  ): Promise<Array<{ pid: number; name: string; ppid?: number; cmd?: string }>>;
-}
-
 declare module 'json5' {
   export function parse(text: string): any;
   export function stringify(value: any, replacer?: any, space?: string | number): string;

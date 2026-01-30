@@ -26,7 +26,6 @@
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "esbuild": "^0.25.1",
-    "find-process": "^2.0.0",
     "minimist": "^1.2.8",
     "openurl": "^1.1.1",
     "ts-node": "^10.9.2",

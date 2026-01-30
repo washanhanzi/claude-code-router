@@ -1,16 +1,52 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
 import { PID_FILE, REFERENCE_COUNT_FILE } from '@CCR/shared';
 import { readConfigFile } from '.';
-import find from 'find-process';
-import { execSync } from 'child_process'; // 引入 execSync 来执行命令行
+import http from 'http';
 
-export async function isProcessRunning(pid: number): Promise<boolean> {
-    try {
-        const processes = await find('pid', pid);
-        return processes.length > 0;
-    } catch (error) {
-        return false;
+// Debug logging - enable with CCR_DEBUG=1
+const DEBUG = process.env.CCR_DEBUG === '1';
+function debug(msg: string) {
+    if (DEBUG) {
+        console.log(`[CCR DEBUG] ${msg}`);
     }
+}
+
+// HTTP health check - the sole method for checking if service is running
+function checkServerHealth(port: number): Promise<boolean> {
+    debug(`HTTP health check on port ${port}`);
+    return new Promise((resolve) => {
+        let resolved = false;
+        const safeResolve = (value: boolean) => {
+            if (!resolved) {
+                resolved = true;
+                resolve(value);
+            }
+        };
+
+        // Overall timeout including connection time (covers connection delays)
+        const overallTimeout = setTimeout(() => {
+            debug(`HTTP health check timeout`);
+            req.destroy();
+            safeResolve(false);
+        }, 3000);
+
+        const req = http.request(
+            { hostname: '127.0.0.1', port, path: '/health', method: 'GET' },
+            (res) => {
+                clearTimeout(overallTimeout);
+                debug(`HTTP health check response: ${res.statusCode}`);
+                // Consume response body to prevent memory leaks
+                res.resume();
+                safeResolve(res.statusCode === 200);
+            }
+        );
+        req.on('error', (err) => {
+            clearTimeout(overallTimeout);
+            debug(`HTTP health check error: ${err.message}`);
+            safeResolve(false);
+        });
+        req.end();
+    });
 }
 
 export function incrementReferenceCount() {
@@ -38,57 +74,23 @@ export function getReferenceCount(): number {
     return parseInt(readFileSync(REFERENCE_COUNT_FILE, 'utf-8')) || 0;
 }
 
-export function isServiceRunning(): boolean {
-    if (!existsSync(PID_FILE)) {
-        return false;
-    }
-
-    let pid: number;
-    try {
-        const pidStr = readFileSync(PID_FILE, 'utf-8');
-        pid = parseInt(pidStr, 10);
-        if (isNaN(pid)) {
-            // PID 文件内容无效
-            cleanupPidFile();
-            return false;
-        }
-    } catch (e) {
-        // 读取文件失败
-        return false;
-    }
+export async function isServiceRunning(): Promise<boolean> {
+    debug(`isServiceRunning() called`);
 
     try {
-        if (process.platform === 'win32') {
-            // --- Windows 平台逻辑 ---
-            // 使用 tasklist 命令并通过 PID 过滤器查找进程
-            // stdio: 'pipe' 压制命令的输出，防止其显示在控制台
-            const command = `tasklist /FI "PID eq ${pid}"`;
-            const output = execSync(command, { stdio: 'pipe' }).toString();
-
-            // 如果输出中包含了 PID，说明进程存在
-            // tasklist 找不到进程时会返回 "INFO: No tasks are running..."
-            // 所以一个简单的包含检查就足够了
-            if (output.includes(pid.toString())) {
-                return true;
-            } else {
-                // 理论上如果 tasklist 成功执行但没找到，这里不会被命中
-                // 但作为保险，我们仍然认为进程不存在
-                cleanupPidFile();
-                return false;
-            }
-
-        } else {
-            // --- Linux, macOS 等其他平台逻辑 ---
-            // 使用信号 0 来检查进程是否存在，这不会真的杀死进程
-            process.kill(pid, 0);
-            return true; // 如果没有抛出异常，说明进程存在
+        const config = await readConfigFile();
+        const port = config.PORT || 3456;
+        const healthy = await checkServerHealth(port);
+        if (healthy) {
+            debug(`Service running (HTTP health check passed)`);
+            return true;
         }
     } catch (e) {
-        // 捕获到异常，说明进程不存在 (无论是 kill 还是 execSync 失败)
-        // 清理掉无效的 PID 文件
-        cleanupPidFile();
-        return false;
+        debug(`Error during health check: ${e}`);
     }
+
+    debug(`Service not running`);
+    return false;
 }
 
 export function savePid(pid: number) {
@@ -98,8 +100,7 @@ export function savePid(pid: number) {
 export function cleanupPidFile() {
     if (existsSync(PID_FILE)) {
         try {
-            const fs = require('fs');
-            fs.unlinkSync(PID_FILE);
+            unlinkSync(PID_FILE);
         } catch (e) {
             // Ignore cleanup errors
         }
@@ -135,19 +136,21 @@ export async function getServiceInfo() {
     };
 }
 
-export async function closeService() {
+export function closeService() {
     // Check reference count
     const referenceCount = getReferenceCount();
 
     // Only stop the service if reference count is 0
     if (referenceCount === 0) {
         const pid = getServicePid();
-        if (pid && await isServiceRunning()) {
+        if (pid) {
             try {
-                // Kill the service process
+                // Try to kill the service process
+                // In jailroot/container environments, this may fail (ESRCH)
+                // because the PID is in a different namespace - that's OK
                 process.kill(pid, 'SIGTERM');
             } catch (e) {
-                // Ignore kill errors
+                // Ignore kill errors (process may already be gone or in different namespace)
             }
         }
     }
