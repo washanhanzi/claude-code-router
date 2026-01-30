@@ -43,15 +43,67 @@ export function sendUnifiedRequest(
       new URL(config.httpsProxy).toString()
     );
   }
+  const timeoutMs = config.TIMEOUT ?? 60 * 1000 * 60;
+  const requestUrl = typeof url === "string" ? url : url.toString();
+  const requestStartTime = Date.now();
+
+  logger?.info(
+    {
+      type: "provider_request_start",
+      reqId: context?.req?.id,
+      requestUrl,
+      timeoutMs,
+      useProxy: !!config.httpsProxy,
+    },
+    "Starting provider request"
+  );
+
   logger?.debug(
     {
-      reqId: context.req.id,
+      reqId: context?.req?.id,
       request: fetchOptions,
       headers: Object.fromEntries(headers.entries()),
-      requestUrl: typeof url === "string" ? url : url.toString(),
+      requestUrl,
       useProxy: config.httpsProxy,
     },
     "final request"
   );
-  return fetch(typeof url === "string" ? url : url.toString(), fetchOptions);
+
+  return fetch(requestUrl, fetchOptions)
+    .then((response) => {
+      const durationMs = Date.now() - requestStartTime;
+      logger?.info(
+        {
+          type: "provider_request_complete",
+          reqId: context?.req?.id,
+          requestUrl,
+          statusCode: response.status,
+          durationMs,
+        },
+        "Provider request completed"
+      );
+      return response;
+    })
+    .catch((error) => {
+      const durationMs = Date.now() - requestStartTime;
+      const isTimeout = error.name === "TimeoutError" || error.code === "UND_ERR_CONNECT_TIMEOUT";
+      logger?.error(
+        {
+          type: "provider_request_error",
+          reqId: context?.req?.id,
+          requestUrl,
+          durationMs,
+          timeoutMs,
+          isTimeout,
+          error: {
+            name: error.name,
+            message: error.message,
+            code: error.code,
+            cause: error.cause?.message,
+          },
+        },
+        isTimeout ? "Provider request timed out" : "Provider request failed"
+      );
+      throw error;
+    });
 }

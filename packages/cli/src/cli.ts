@@ -174,7 +174,7 @@ async function main() {
         const cliPath = join(__dirname, "cli.js");
         const startProcess = spawn("node", [cliPath, "start"], {
           detached: true,
-          stdio: "ignore",
+          stdio: "inherit",
         });
 
         startProcess.on("error", (error) => {
@@ -282,7 +282,7 @@ async function main() {
         const cliPath = join(__dirname, "cli.js");
         const startProcess = spawn("node", [cliPath, "start"], {
           detached: true,
-          stdio: "ignore",
+          stdio: "inherit",
         });
 
         startProcess.on("error", (error) => {
@@ -313,7 +313,7 @@ async function main() {
         const cliPath = join(__dirname, "cli.js");
         const startProcess = spawn("node", [cliPath, "start"], {
           detached: true,
-          stdio: "ignore",
+          stdio: "inherit",
         });
 
         startProcess.on("error", (error) => {
@@ -362,7 +362,7 @@ async function main() {
             // Try starting the service again
             const restartProcess = spawn("node", [cliPath, "start"], {
               detached: true,
-              stdio: "ignore",
+              stdio: "inherit",
             });
 
             restartProcess.on("error", (error) => {
